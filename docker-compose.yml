@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  mysqldb:
+    image: ${DB_IMAGE}
+    container_name: elderly_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD} # Avoids prompt warnings
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - elderly-mysql-data:/var/lib/mysql
+    networks:
+      - elderly-network
+    # Healthcheck ensures the DB is actually ready to accept connections, not just running
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: 
+      context: ./Backend-Projet-Elderly-Assistance-Platform
+      dockerfile: Dockerfile
+    container_name: elderly_backend
+    restart: unless-stopped
+    depends_on:
+      mysqldb:
+        condition: service_healthy # Will ONLY start if mysqldb healthcheck passes
+    ports:
+      - "${BACKEND_PORT}:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysqldb:3306/${DB_NAME}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATIONMS=${JWT_EXPIRATION_MS}
+    networks:
+      - elderly-network
+    # Exposing a simplistic actuator/health or basic curl for Spring
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger-ui/index.html || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+        
+  frontend:
+    build:
+      context: ./Frontend-Projet-Elderly-Assistance-Platform
+      dockerfile: Dockerfile
+    container_name: elderly_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+         condition: service_healthy # UI only starts if backend is healthy
+    ports:
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - elderly-network
+
+networks:
+  elderly-network:
+    driver: bridge
+
+volumes:
+  elderly-mysql-data:
+    driver: local
