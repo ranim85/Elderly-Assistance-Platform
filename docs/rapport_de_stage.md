@@ -51,7 +51,6 @@ La plateforme manipulant des données médicales sensibles (PHI), des contrainte
 
 ## Chapitre 3 : Conception et Architecture
 
-*[NOTE POUR LE RAPPORT: Insérer ici une capture d'écran du Diagramme Entité-Association (ER Diagram) ou de Classe]*
 
 ### 3.1 L'Architecture "Clean" (Oignon/N-Tiers)
 Pour que la plateforme soit maintenable par Bee Coders sur plusieurs années, j'ai implémenté une **Clean Architecture** côté back-end :
@@ -68,9 +67,7 @@ L'Angular 17 a été couplé à des concepts modernes pour sécuriser l'applicat
 - **L'AuthInterceptor** (Intercepteur Fonctionnel) : Il copie et modifie chaque requête HTTP sortante d'Angular pour lui injecter le `Token Bearer`. Si le JWT est expiré (réponse HTTP 401), il détruit le jeton côté client et redirige globalement sur le login. 
 - **La protection des routes (AuthGuard)** : Implémentation bloquant l'accès visuel au Dashboard si le profil n'est pas identifié.
 
-*[NOTE POUR LE RAPPORT: Insérer ici 2 captures d'écran : 1) La page de demande de connexion Angular Material. 2) Un message d'erreur rouge lorsque les identifiants sont erronés provenant du backend.]*
 
-*[NOTE POUR LE RAPPORT: Insérer ici une capture d'écran de l'interface Swagger UI générée sur le port 8080]*
 
 ### 4.3 Les Innovations "HealthTech" (Fonctionnalités avancées)
 Pour apporter une plus-value majeure au produit, j'ai implémenté 5 piliers technologiques d'assistance :
