@@ -33,49 +33,97 @@ usecaseDiagram
     caregiver --> UC5
     caregiver --> UC7
 
+    family --> UC1
+    family --> UC4
+    family --> UC5
+    family --> UC7
+
     admin --> UC1
     admin --> UC2
     admin --> UC7
 ```
 
-## 2. Entity-Relationship (ER) Diagram (Physical Mapping)
+## 2. Entity-Relationship (ER) Diagram (aligned with JPA entities)
+
+This reflects the **current** persistence model in the Spring Boot module including the HealthTech enhancements.
 
 ```mermaid
 erDiagram
-    USERS ||--o| PROFILES : has
-    USERS ||--o{ ALERTS : triggers
-    USERS ||--o{ MEDICATION_REMINDERS : manages
+    USERS ||--o{ ELDERLY_PERSONS : "caregiver (ManyToOne)"
+    ELDERLY_PERSONS ||--o{ USERS : "linked_elderly_person (Family)"
+    ELDERLY_PERSONS ||--o{ ALERTS : "subject"
+    USERS ||--o{ ALERTS : "resolved_by"
+    ELDERLY_PERSONS ||--o{ HEALTH_RECORDS : has
+    ELDERLY_PERSONS ||--o{ APPOINTMENTS : has
+    ELDERLY_PERSONS ||--o{ MEDICATIONS : has
+    ELDERLY_PERSONS ||--o| ELDERLY_SETTINGS : "geofence tracker"
 
     USERS {
         bigint id PK
         varchar first_name
         varchar last_name
-        varchar email "UNIQUE, NOT NULL"
-        varchar password "BCRYPT HASH"
-        varchar role "Enum: ADMIN, CAREGIVER, ELDERLY"
+        varchar email UK "UNIQUE, NOT NULL"
+        varchar password "BCrypt"
+        varchar role "ADMIN, CAREGIVER, ELDERLY, FAMILY_MEMBER"
+        bigint linked_elderly_person_id FK "nullable -> elderly_persons.id"
     }
 
-    PROFILES {
+    ELDERLY_PERSONS {
         bigint id PK
-        bigint user_id FK
-        text medical_history
-        varchar emergency_line
+        varchar first_name
+        varchar last_name
+        date date_of_birth
+        varchar address
+        varchar medical_conditions
+        bigint caregiver_id FK "nullable -> users.id"
     }
 
     ALERTS {
         bigint id PK
-        bigint user_id FK
-        datetime created_at
-        varchar status "PENDING, RESOLVED"
-        point location_coordinates
+        bigint elderly_id FK
+        varchar alert_type "SOS, MEDICAL_EMERGENCY, FALL_DETECTED, WANDERING_EMERGENCY"
+        varchar priority "LOW, MEDIUM, HIGH, URGENT"
+        varchar description
+        datetime timestamp
+        boolean is_resolved
+        datetime resolved_at
+        bigint resolved_by FK "nullable -> users.id"
     }
 
-    MEDICATION_REMINDERS {
+    HEALTH_RECORDS {
         bigint id PK
-        bigint user_id FK
-        varchar medication_name
+        bigint elderly_id FK
+        varchar blood_pressure
+        int heart_rate
+        double blood_sugar
+        datetime recorded_at
+    }
+
+    APPOINTMENTS {
+        bigint id PK
+        bigint elderly_id FK
+        varchar doctor_name
+        varchar purpose
+        datetime appointment_date
+        varchar status "SCHEDULED, COMPLETED, CANCELLED"
+    }
+
+    MEDICATIONS {
+        bigint id PK
+        bigint elderly_id FK
+        varchar name
         varchar dosage
-        time schedule
+        datetime scheduled_time
+        boolean is_taken
+        datetime time_taken
+    }
+
+    ELDERLY_SETTINGS {
+        bigint id PK
+        bigint elderly_id FK "UNIQUE"
+        double home_latitude
+        double home_longitude
+        double safe_zone_radius
     }
 ```
 
@@ -107,26 +155,31 @@ sequenceDiagram
     Guard-->>User: Permits navigation to Dashboard UI
 
     User->>App: Requests Dashboard Data
-    App->>Interceptor: GET /api/v1/dashboard/stats
+    App->>Interceptor: GET /api/dashboard/stats
     Interceptor->>Interceptor: Clone request & Inject 'Authorization: Bearer <token>'
     Interceptor->>API: Validated Request
     API-->>App: 200 OK (Data)
 ```
 
-## 4. Component Diagram (Clean Architecture)
+## 4. Component Diagram (HealthTech layering)
 
 ```mermaid
 componentDiagram
     package "Frontend (Angular 17+)" {
         [AuthInterceptor] --> [AuthGuard] : protects state
         [AuthGuard] --> [UI Components]
+        [WebsocketService] --> [UI Components] : Provides live StompJS feed
     }
 
     package "Backend (Spring Boot 3)" {
         [GlobalExceptionHandler] -.-> [Controllers] : @RestControllerAdvice
-        [Controllers] --> [MapStruct Mappers] : Convert to DTO
-        [Controllers] --> [Services] : Delegate Logic
-        [Services] --> [Repositories] : Pure JPA
+        [ChannelInterceptor] --> [WebSocket Broker] : Validates JWT for STOMP
+        [WebSocket Broker] --> [WebsocketService] : Push Private Alerts
+        [Controllers] --> [DTO records] : map entity to JSON-safe DTO
+        [Controllers] --> [Domain services] : LocationService, PdfExportService
+        [Domain services] --> [Repositories]
+        [Controllers] --> [Repositories] : read queries where no service yet
+        [MedicationScheduler] --> [Repositories] : Scans DB every 30min
     }
 
     [UI Components] --> [Controllers] : HTTP / REST JSON

@@ -1,38 +1,45 @@
-<div class="login-container">
-  <mat-card class="login-card mat-elevation-z8">
-    <mat-card-header>
-      <mat-card-title>Welcome Back</mat-card-title>
-      <mat-card-subtitle>Elderly Assistance Platform</mat-card-subtitle>
-    </mat-card-header>
+<div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+  <mat-card class="w-full max-w-md p-8 shadow-lg rounded-xl bg-white border border-gray-100">
+    
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-blue-600 mb-4 shadow-sm">
+        <mat-icon style="font-size: 32px; width: 32px; height: 32px">health_and_safety</mat-icon>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-800">Elderly Assistance</h2>
+      <p class="text-gray-500 mt-2 font-medium">Platform Access</p>
+    </div>
 
     <mat-card-content>
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="flex flex-col space-y-4">
         
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Email</mat-label>
-          <input matInput formControlName="email" type="email" placeholder="Ex. admin@beecoders.tn">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Email Address</mat-label>
+          <input matInput formControlName="email" type="email" placeholder="example@health.org" autofocus>
+          <mat-icon matPrefix class="text-gray-400 mr-2">mail</mat-icon>
           <mat-error *ngIf="loginForm.get('email')?.hasError('required')">Email is required</mat-error>
-          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Please enter a valid email address</mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Invalid email syntax</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="w-full">
           <mat-label>Password</mat-label>
-          <input matInput formControlName="password" type="password">
+          <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'">
+          <mat-icon matPrefix class="text-gray-400 mr-2">lock</mat-icon>
+          <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" aria-label="Toggle password visibility">
+            <mat-icon class="text-gray-400">{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
           <mat-error *ngIf="loginForm.get('password')?.hasError('required')">Password is required</mat-error>
         </mat-form-field>
 
-        <!-- Dynamic Error Banner from Backend -->
-        <div class="error-message" *ngIf="errorMessage">
-          {{ errorMessage }}
+        <div class="flex items-center justify-end -mt-2 mb-6">
+          <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Forgot Password?</a>
         </div>
 
-        <div class="actions">
-          <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || isLoading">
-            <span *ngIf="!isLoading">Login</span>
-            <mat-spinner *ngIf="isLoading" diameter="24"></mat-spinner>
-          </button>
-        </div>
-
+        <button mat-flat-button color="primary" type="submit" 
+                class="w-full h-12 text-base font-semibold rounded-lg shadow-md"
+                [disabled]="loginForm.invalid || isLoading">
+          <span *ngIf="!isLoading">Login</span>
+          <mat-spinner *ngIf="isLoading" diameter="24" style="margin: 0 auto;"></mat-spinner>
+        </button>
       </form>
     </mat-card-content>
   </mat-card>

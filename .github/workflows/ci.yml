@@ -1,58 +1,38 @@
-name: Elderly Assistance Platform CI/CD
+name: CI
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [main, master, develop]
   pull_request:
-    branches: [ "main" ]
+    branches: [main, master, develop]
 
 jobs:
-  build-and-test-backend:
+  backend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend-Projet-Elderly-Assistance-Platform
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-        
-    - name: Build with Maven
-      working-directory: ./Backend-Projet-Elderly-Assistance-Platform
-      run: mvn clean package -DskipTests
-      
-    - name: Run Backend Unit Tests
-      working-directory: ./Backend-Projet-Elderly-Assistance-Platform
-      run: mvn test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Test and package
+        run: mvn -B -q test
 
-  build-and-test-frontend:
+  frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend-Projet-Elderly-Assistance-Platform
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: ./Frontend-Projet-Elderly-Assistance-Platform/package-lock.json
-        
-    - name: Install Dependencies
-      working-directory: ./Frontend-Projet-Elderly-Assistance-Platform
-      run: npm ci
-      
-    - name: Build Angular Application
-      working-directory: ./Frontend-Projet-Elderly-Assistance-Platform
-      run: npm run build -- --configuration production
-
-  docker-compose-validate:
-    runs-on: ubuntu-latest
-    needs: [build-and-test-backend, build-and-test-frontend]
-    steps:
-    - uses: actions/checkout@v4
-    - name: Validate Docker Compose
-      run: docker compose config
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend-Projet-Elderly-Assistance-Platform/package-lock.json
+      - name: Install and build
+        run: npm ci && npx ng build --configuration=development

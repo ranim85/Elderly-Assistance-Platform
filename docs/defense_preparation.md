@@ -25,7 +25,7 @@ Avec JWT, toute l'intelligence cryptographique est dans le jeton. Le Backend vé
 
 **Question du Jury :** *"Comment gérez-vous la conversion entre votre Entity et ce DTO ?"*
 **Votre Réponse (Senior) :** 
-> "J'ai rejeté l'affectation manuelle et les librairies basées sur la réflexion (comme ModelMapper) qui sont lentes. J'ai configuré à la place **MapStruct**. C'est un processeur d'annotations qui génère du code Java optimisé au moment de la compilation. Le code tourne vite et les erreurs de typage sont alertées avant même de lancer l'application."
+> "Je n'expose jamais les `@Entity` directement au JSON : j'utilise des **DTO immutables** (souvent des `record` Java) pour contrôler le contrat API. Le projet inclut **MapStruct** pour les zones où un mapper généré à la compilation apporte le plus de valeur (par exemple autour des utilisateurs). Pour les agrégats simples, je construis aussi des **DTO imbriqués** (`ElderlySummaryDTO`, `CaregiverSummaryDTO`) dans le contrôleur ou un petit service : c'est explicite, facile à relire en soutenance, et évite les 'fuites' de modèle relationnel vers le front."
 
 ---
 

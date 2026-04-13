@@ -1,34 +1,76 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpErrorResponse,
+  HttpInterceptorFn
+} from '@angular/common/http';
 import { inject } from '@angular/core';
-import { AuthService } from '../services/auth.service';
-import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { catchError, switchMap, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
+import { SKIP_AUTH, SKIP_REFRESH_RETRY } from '../http-context';
+
+interface AuthPairResponse {
+  token: string;
+  refreshToken: string;
+  role: string;
+}
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
+  const http = inject(HttpClient);
   const router = inject(Router);
-  const token = authService.getToken();
 
-  // Clone the request and attach the JWT token if it exists
-  let authReq = req;
-  if (token) {
-    authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
+  const skipAuth = req.context.get(SKIP_AUTH);
+  const skipRefresh = req.context.get(SKIP_REFRESH_RETRY);
+  const isAuthApi = req.url.includes('/api/v1/auth/');
+
+  let outbound = req;
+  const token = authService.getToken();
+  if (token && !skipAuth) {
+    outbound = req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` }
     });
   }
 
-  // Pass it to the next handler and intercept errors globally
-  return next(authReq).pipe(
+  return next(outbound).pipe(
     catchError((error: HttpErrorResponse) => {
-      // If our API returns 401 Unauthorized, the token is invalid/expired
-      if (error.status === 401) {
-        authService.logout();
-        router.navigate(['/login']); // Force user back to login page
+      if (error.status !== 401) {
+        return throwError(() => error);
       }
-      return throwError(() => error);
+      if (isAuthApi || skipRefresh) {
+        return throwError(() => error);
+      }
+
+      const refreshToken = authService.getRefreshToken();
+      if (!refreshToken) {
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => error);
+      }
+
+      const refreshCtx = new HttpContext().set(SKIP_AUTH, true).set(SKIP_REFRESH_RETRY, true);
+      return http
+        .post<AuthPairResponse>(
+          '/api/v1/auth/refresh',
+          { refreshToken },
+          { context: refreshCtx }
+        )
+        .pipe(
+          switchMap((res) => {
+            authService.saveToken(res.token, res.role);
+            authService.saveRefreshToken(res.refreshToken);
+            const retry = req.clone({
+              setHeaders: { Authorization: `Bearer ${res.token}` }
+            });
+            return next(retry);
+          }),
+          catchError(() => {
+            authService.logout();
+            router.navigate(['/login']);
+            return throwError(() => error);
+          })
+        );
     })
   );
 };

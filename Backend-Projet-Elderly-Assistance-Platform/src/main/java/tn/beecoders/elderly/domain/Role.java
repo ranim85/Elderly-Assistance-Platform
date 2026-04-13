@@ -4,5 +4,5 @@ public enum Role {
     ADMIN,
     CAREGIVER,
     ELDERLY,
-    FAMILY
+    FAMILY_MEMBER
 }

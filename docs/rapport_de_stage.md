@@ -56,7 +56,7 @@ La plateforme manipulant des données médicales sensibles (PHI), des contrainte
 ### 3.1 L'Architecture "Clean" (Oignon/N-Tiers)
 Pour que la plateforme soit maintenable par Bee Coders sur plusieurs années, j'ai implémenté une **Clean Architecture** côté back-end :
 - **Couche Entité (JPA)** : Cartographie directe à la base MySQL. Le typage Java est protégé par des records immutables lors du retour d'API.
-- **Data Transfer Objects (DTO) et MapStruct** : Pour éviter l'exposition d'informations sensibles de la base de données, l'API ne communique qu'avec des `RegisterRequest` ou `UserDTO`. `MapStruct` compile dynamiquement ces conversions à la volée.
+- **Data Transfer Objects (DTO)** : Pour éviter l'exposition d'informations sensibles de la base de données, l'API ne communique qu'avec des `RegisterRequest` ou `UserDTO`. Le mapping est effectué de façon explicite (via des méthodes `mapToDTO`) pour garantir un alignement précis avec le Frontend et contourner les erreurs de requêtes paresseuses (LazyInitializationException).
 - **Global Exception Handler** : Intercepteur via `@RestControllerAdvice` qui intercepte toute erreur Java générant un crash (comme `MethodArgumentNotValidException`), afin de la transformer en un format JSON structuré (`ErrorResponse`). Cela bloque toute propagation de logs confidentiels côté client public.
 
 ---
@@ -70,10 +70,15 @@ L'Angular 17 a été couplé à des concepts modernes pour sécuriser l'applicat
 
 *[NOTE POUR LE RAPPORT: Insérer ici 2 captures d'écran : 1) La page de demande de connexion Angular Material. 2) Un message d'erreur rouge lorsque les identifiants sont erronés provenant du backend.]*
 
-### 4.2 Automatisation de la documentation (Swagger / OpenAPI)
-Pour faciliter le travail d'une équipe QA ou l'intégration par un tiers de la plateforme de santé, j'ai embarqué `Springdoc OpenAPI`. L'intégralité des contrats de routes REST est disponible dynamiquement et testable sans l'interface Angular, démontrant un cycle de développement mature.
-
 *[NOTE POUR LE RAPPORT: Insérer ici une capture d'écran de l'interface Swagger UI générée sur le port 8080]*
+
+### 4.3 Les Innovations "HealthTech" (Fonctionnalités avancées)
+Pour apporter une plus-value majeure au produit, j'ai implémenté 5 piliers technologiques d'assistance :
+1. **Moteur Temps Réel (WebSockets STOMP)** : Remplacement des requêtes HTTP classiques par un canal WebSocket sécurisé. Lorsqu'un algorithme détecte un danger, une notification "Push" rouge apparaît instantanément (en quelques millisecondes) sur l'écran Angular du médecin, sans actualisation de page.
+2. **Planificateur Médical CRON** : J'ai programmé un robot "Scheduler" qui s'exécute silencieusement toutes les 30 minutes via Spring Boot. Il vérifie l'observance médicamenteuse et lève automatiquement une Alerte si le patient a oublié sa pilule.
+3. **Timeline Polymorphique de la Famille** : Création d'une API agrégeant 4 tables SQL différentes (Rendez-vous, Urgences, Tension artérielle, Médicaments) pour les aligner sur une seule ligne du temps chronologique (inspiré du feed d'un réseau social) afin de rassurer la Famille.
+4. **Rapports Médicaux PDF** : Intégration de la librairie *OpenPDF*. En un clic, l'application génère et compile le passeport santé (données des 30 derniers jours) dans un fichier binaire A4 certifié, prêt pour une hospitalisation.
+5. **Géofencing Anti-Errance (Mathématique)** : Programmation d'un module spatial de géolocalisation. L'algorithme calcule la distance de *Haversine* entre la "Safe-Zone" (la Maison) et les pings d'une Smartwatch simulée en Front-end. En cas de franchissement de périmètre, le hub déclenche une interception d'urgence.
 
 ---
 
@@ -92,7 +97,7 @@ De plus, j'ai introduit des `healthchecks` Docker : notre API Spring Boot attend
 
 La conception d'une arborescence d'entreprise m'a obligée à surmonter divers obstacles :
 1. **La gestion asynchrone des Observables Angular** : Le paradigme RxJS d'Angular nécessite d'abandonner les processus procéduraux. S'assurer que le stockage du token s'effectue avant l'initialisation du tableau de bord a exigé l'implémentation de résolveurs réactifs et l'usage de Signaux (v17+).
-2. **L'implémentation stricte des DTO** : Gérer la conversion automatique d'objets imbriqués sans affecter la performance m'a forcé à apprendre l'utilisation avancée du plugin Maven pour MapStruct.
+2. **L'implémentation stricte des DTO** : Gérer la conversion d'objets imbriqués sans affecter la performance (notamment les relations associatives de Hibernate) m'a forcé à concevoir des sous-projections (ex: `ElderlySummaryDTO`) et à consolider les mappings manuellement pour protéger la sérialisation JSON.
 3. **Container Networking** : Connecter trois conteneurs distincts nécessitait de bien comprendre la résolution DNS interne des réseaux bridges Docker pour formuler l'URI JDBC vers MySQL.
 
 ---
@@ -100,7 +105,7 @@ La conception d'une arborescence d'entreprise m'a obligée à surmonter divers o
 ## Conclusion et Perspectives
 
 ### Bilan Personnel et Technique
-Ce stage chez Bee Coders m'a permis de réaliser mon immersion dans la méthode de travail "Industrie". En réalisant seul un projet Full-Stack du modèle de la base de données jusqu'à l'orchestration Docker CI/CD, j'ai acquis le recul d'un développeur polyvalent. J'ai compris que l'ingénierie logicielle ne se résume pas à écrire du code : concevoir l'architecture à l'aveugle est aisé, c'est concevoir pour l'évolution et la sécurité qui demande rigueur et discipline.
+Ce stage chez Bee Coders m'a permis de réaliser mon immersion dans la méthode de travail "Industrie". En réalisant seul un projet Full-Stack du modèle de la base de données jusqu'à l'orchestration Docker CI/CD, sans omettre l'implémentation de mathématiques spatiales (Geofencing) et de sockets temps-réel, j'ai acquis le recul d'un ingénieur logiciel complet. J'ai compris que l'ingénierie logicielle ne se résume pas à écrire du code : concevoir l'architecture à l'aveugle est aisé, c'est concevoir pour l'évolution, le temps réel et la sécurité des données qui demande de la rigueur.
 
 ### Perspectives d'Amélioration
 La "Elderly Assistance Platform", ayant franchi le stade du prototype MVP, présente un énorme potentiel. L'intégration de modules complémentaires s'impose :

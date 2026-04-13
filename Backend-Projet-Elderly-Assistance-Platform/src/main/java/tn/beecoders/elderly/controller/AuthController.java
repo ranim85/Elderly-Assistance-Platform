@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.beecoders.elderly.dto.AuthRequest;
 import tn.beecoders.elderly.dto.AuthResponse;
+import tn.beecoders.elderly.dto.RefreshTokenRequest;
 import tn.beecoders.elderly.dto.RegisterRequest;
 import tn.beecoders.elderly.security.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,5 +31,11 @@ public class AuthController {
     @PostMapping("/authenticate")
     public ResponseEntity<AuthResponse> authenticate(@Valid @RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.authenticate(request));
+    }
+
+    @Operation(summary = "Refresh access token", description = "Exchanges a valid refresh token for a new access and refresh token pair.")
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 }
